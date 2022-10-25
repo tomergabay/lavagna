@@ -1,0 +1,43 @@
+volumes:
+  LAVAGNAdb:
+
+services:
+  
+  nginx:
+    container_name: nginx_server
+    image: nginx:alpine
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./src/main/webapp:/etc/nginx/statics
+
+
+  mysql_db:
+    container_name: db
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: "lavagna"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 1s
+      timeout: 1s
+      retries: 20
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
+      - LAVAGNAdb:/var/lib/mysql
+
+  app:
+    container_name: maven_app
+    build: .
+    restart: always
+    # ports:
+    #   - 8080:8080
+    depends_on:
+      mysql_db:
+        condition: service_healthy
